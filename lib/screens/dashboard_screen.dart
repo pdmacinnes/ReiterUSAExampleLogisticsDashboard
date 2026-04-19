@@ -9,6 +9,9 @@ import '../widgets/volume_trend_chart.dart';
 import '../widgets/route_status_cards.dart';
 import '../widgets/open_trades_table.dart';
 import '../widgets/compliance_snapshot.dart';
+import 'analytics_screen.dart';
+import 'fleet_screen.dart';
+import 'trading_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -17,22 +20,32 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLoaded = context.watch<DashboardProvider>().isLoaded;
 
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      body: Column(
-        children: [
-          _AppHeader(),
-          const CommodityTicker(),
-          Expanded(
-            child: isLoaded
-                ? const _DashboardBody()
-                : const Center(
-                    child: CircularProgressIndicator(
-                      color: AppTheme.accent,
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        backgroundColor: AppTheme.background,
+        body: Column(
+          children: [
+            _AppHeader(),
+            const CommodityTicker(),
+            _TabBar(),
+            Expanded(
+              child: isLoaded
+                  ? const TabBarView(
+                      physics: NeverScrollableScrollPhysics(),
+                      children: [
+                        _OverviewTab(),
+                        AnalyticsScreen(),
+                        FleetScreen(),
+                        TradingScreen(),
+                      ],
+                    )
+                  : const Center(
+                      child: CircularProgressIndicator(color: AppTheme.accent),
                     ),
-                  ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -54,11 +67,8 @@ class _AppHeader extends StatelessWidget {
               color: AppTheme.accent,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(
-              Icons.local_shipping_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
+            child: const Icon(Icons.local_shipping_rounded,
+                color: Colors.white, size: 20),
           ),
           const SizedBox(width: 12),
           Column(
@@ -84,12 +94,13 @@ class _AppHeader extends StatelessWidget {
           _DateBadge(),
           const SizedBox(width: 12),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: AppTheme.success.withOpacity(0.15),
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                  color: AppTheme.success.withOpacity(0.4)),
+              border:
+                  Border.all(color: AppTheme.success.withOpacity(0.4)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -98,19 +109,14 @@ class _AppHeader extends StatelessWidget {
                   width: 6,
                   height: 6,
                   decoration: const BoxDecoration(
-                    color: AppTheme.success,
-                    shape: BoxShape.circle,
-                  ),
+                      color: AppTheme.success, shape: BoxShape.circle),
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  'Live',
-                  style: TextStyle(
-                    color: AppTheme.success,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                Text('Live',
+                    style: TextStyle(
+                        color: AppTheme.success,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
               ],
             ),
           ),
@@ -138,8 +144,43 @@ class _DateBadge extends StatelessWidget {
   }
 }
 
-class _DashboardBody extends StatelessWidget {
-  const _DashboardBody();
+class _TabBar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppTheme.surface,
+      child: TabBar(
+        isScrollable: false,
+        labelColor: AppTheme.accent,
+        unselectedLabelColor: AppTheme.textSecondary,
+        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        unselectedLabelStyle:
+            const TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
+        indicatorColor: AppTheme.accent,
+        indicatorWeight: 2,
+        dividerColor: AppTheme.divider,
+        tabs: const [
+          Tab(icon: Icon(Icons.dashboard_rounded, size: 16), text: 'Overview'),
+          Tab(
+              icon: Icon(Icons.analytics_rounded, size: 16),
+              text: 'Analytics'),
+          Tab(
+              icon: Icon(Icons.local_shipping_rounded, size: 16),
+              text: 'Fleet'),
+          Tab(
+              icon: Icon(Icons.swap_horiz_rounded, size: 16),
+              text: 'Trading'),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Overview tab (original dashboard content)
+// ---------------------------------------------------------------------------
+class _OverviewTab extends StatelessWidget {
+  const _OverviewTab();
 
   @override
   Widget build(BuildContext context) {

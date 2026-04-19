@@ -29,6 +29,7 @@ class DashboardProvider extends ChangeNotifier {
   List<Trade> get trades => _trades;
   List<CommodityPrice> get commodityPrices => _commodityPrices;
   PickupStatus? get activeFilter => _activeFilter;
+  List<Pickup> get allPickups => _pickups;
 
   List<Pickup> get filteredPickups {
     if (_activeFilter == null) return _pickups;
