@@ -9,6 +9,7 @@ import '../widgets/volume_trend_chart.dart';
 import '../widgets/route_status_cards.dart';
 import '../widgets/open_trades_table.dart';
 import '../widgets/compliance_snapshot.dart';
+import '../widgets/alerts_panel.dart';
 import 'analytics_screen.dart';
 import 'fleet_screen.dart';
 import 'trading_screen.dart';
@@ -228,6 +229,8 @@ class _OverviewTab extends StatelessWidget {
               ],
               const SizedBox(height: 16),
               const ComplianceSnapshot(),
+              const SizedBox(height: 16),
+              const AlertsPanel(),
               const SizedBox(height: 16),
             ],
           ),

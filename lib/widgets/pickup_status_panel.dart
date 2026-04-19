@@ -19,6 +19,14 @@ class PickupStatusPanel extends StatefulWidget {
 
 class _PickupStatusPanelState extends State<PickupStatusPanel> {
   PickupViewType _viewType = PickupViewType.table;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,8 +39,14 @@ class _PickupStatusPanelState extends State<PickupStatusPanel> {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (_viewType == PickupViewType.table)
+          if (_viewType == PickupViewType.table) ...[
+            _SearchBar(
+              controller: _searchController,
+              onChanged: (q) => setState(() => _searchQuery = q),
+            ),
+            const SizedBox(width: 8),
             _FilterRow(activeFilter: provider.activeFilter),
+          ],
           const SizedBox(width: 8),
           ChartTypeSelector<PickupViewType>(
             options: const [
@@ -45,8 +59,55 @@ class _PickupStatusPanelState extends State<PickupStatusPanel> {
         ],
       ),
       child: _viewType == PickupViewType.table
-          ? _TableView(provider: provider)
+          ? _TableView(provider: provider, searchQuery: _searchQuery)
           : _DonutView(pickups: allPickups),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Search bar
+// ---------------------------------------------------------------------------
+class _SearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  const _SearchBar({required this.controller, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 160,
+      height: 28,
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        style: AppTheme.bodySmall.copyWith(fontSize: 11),
+        decoration: InputDecoration(
+          hintText: 'Search location or driver...',
+          hintStyle:
+              AppTheme.bodySmall.copyWith(fontSize: 11, color: AppTheme.textSecondary),
+          prefixIcon: Icon(Icons.search_rounded,
+              size: 14, color: AppTheme.textSecondary),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          isDense: true,
+          filled: true,
+          fillColor: AppTheme.surfaceElevated,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: BorderSide(color: AppTheme.divider),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: BorderSide(color: AppTheme.divider),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: BorderSide(color: AppTheme.accent),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -56,12 +117,22 @@ class _PickupStatusPanelState extends State<PickupStatusPanel> {
 // ---------------------------------------------------------------------------
 class _TableView extends StatelessWidget {
   final DashboardProvider provider;
+  final String searchQuery;
 
-  const _TableView({required this.provider});
+  const _TableView({required this.provider, required this.searchQuery});
 
   @override
   Widget build(BuildContext context) {
-    final pickups = provider.filteredPickups;
+    var pickups = provider.filteredPickups;
+    if (searchQuery.isNotEmpty) {
+      final q = searchQuery.toLowerCase();
+      pickups = pickups
+          .where((p) =>
+              p.locationName.toLowerCase().contains(q) ||
+              p.driverName.toLowerCase().contains(q) ||
+              p.city.toLowerCase().contains(q))
+          .toList();
+    }
     return Column(
       children: [
         _TableHeader(),

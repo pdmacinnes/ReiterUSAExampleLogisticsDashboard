@@ -25,6 +25,8 @@ class AnalyticsScreen extends StatelessWidget {
           SizedBox(height: 16),
           _RoutePerformanceChart(),
           SizedBox(height: 16),
+          _MonthOverMonthChart(),
+          SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -284,6 +286,202 @@ class _RoutePerformanceChartState extends State<_RoutePerformanceChart> {
           );
         }).toList(),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Month-over-Month Comparison
+// ---------------------------------------------------------------------------
+class _MonthOverMonthChart extends StatelessWidget {
+  const _MonthOverMonthChart();
+
+  @override
+  Widget build(BuildContext context) {
+    final volumes = context.watch<DashboardProvider>().dailyVolumes;
+
+    final marchData = <int, int>{};
+    final aprilData = <int, int>{};
+    for (final v in volumes) {
+      if (v.date.month == 3) marchData[v.date.day] = v.gallons;
+      if (v.date.month == 4) aprilData[v.date.day] = v.gallons;
+    }
+
+    final marchSpots = marchData.entries
+        .map((e) => FlSpot(e.key.toDouble(), e.value.toDouble()))
+        .toList()
+      ..sort((a, b) => a.x.compareTo(b.x));
+    final aprilSpots = aprilData.entries
+        .map((e) => FlSpot(e.key.toDouble(), e.value.toDouble()))
+        .toList()
+      ..sort((a, b) => a.x.compareTo(b.x));
+
+    final allY = [
+      ...marchSpots.map((s) => s.y),
+      ...aprilSpots.map((s) => s.y),
+    ];
+    if (allY.isEmpty) return const SizedBox();
+    final maxY = allY.reduce((a, b) => a > b ? a : b) * 1.2;
+
+    final marchTotal = marchData.values.fold(0, (s, v) => s + v);
+    final aprilTotal = aprilData.values.fold(0, (s, v) => s + v);
+    final diff = aprilTotal - marchTotal;
+    final diffColor = diff >= 0 ? AppTheme.success : AppTheme.error;
+
+    return DashboardCard(
+      title: 'Month-over-Month Volume',
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _MomLegend(color: AppTheme.info, label: 'March'),
+          const SizedBox(width: 12),
+          _MomLegend(color: AppTheme.accent, label: 'April'),
+          const SizedBox(width: 12),
+          Text(
+            '${diff >= 0 ? '+' : ''}${NumberFormat('#,###').format(diff)} gal vs March',
+            style: AppTheme.labelMedium.copyWith(
+                color: diffColor, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+      child: SizedBox(
+        height: 220,
+        child: LineChart(
+          LineChartData(
+            minY: 0,
+            maxY: maxY,
+            gridData: FlGridData(
+              show: true,
+              drawVerticalLine: false,
+              horizontalInterval: 500,
+              getDrawingHorizontalLine: (_) =>
+                  FlLine(color: AppTheme.divider, strokeWidth: 1),
+            ),
+            borderData: FlBorderData(show: false),
+            titlesData: FlTitlesData(
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 26,
+                  interval: 5,
+                  getTitlesWidget: (v, _) {
+                    final d = v.toInt();
+                    if (d % 5 != 0) return const SizedBox();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Day $d',
+                        style: AppTheme.bodySmall.copyWith(fontSize: 9),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 44,
+                  interval: 500,
+                  getTitlesWidget: (v, _) {
+                    if (v == 0) return const SizedBox();
+                    return Text(
+                      '${(v / 1000).toStringAsFixed(1)}k',
+                      style: AppTheme.bodySmall.copyWith(fontSize: 10),
+                    );
+                  },
+                ),
+              ),
+              topTitles:
+                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              rightTitles:
+                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            ),
+            lineBarsData: [
+              LineChartBarData(
+                spots: marchSpots,
+                isCurved: true,
+                curveSmoothness: 0.3,
+                color: AppTheme.info,
+                barWidth: 2,
+                dotData: const FlDotData(show: false),
+                belowBarData: BarAreaData(
+                  show: true,
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppTheme.info.withOpacity(0.12),
+                      AppTheme.info.withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+              LineChartBarData(
+                spots: aprilSpots,
+                isCurved: true,
+                curveSmoothness: 0.3,
+                color: AppTheme.accent,
+                barWidth: 2,
+                dotData: const FlDotData(show: false),
+                belowBarData: BarAreaData(
+                  show: true,
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppTheme.accent.withOpacity(0.12),
+                      AppTheme.accent.withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            lineTouchData: LineTouchData(
+              touchTooltipData: LineTouchTooltipData(
+                getTooltipColor: (_) => AppTheme.surfaceElevated,
+                getTooltipItems: (spots) => spots.map((s) {
+                  final month = s.barIndex == 0 ? 'March' : 'April';
+                  final color = s.barIndex == 0 ? AppTheme.info : AppTheme.accent;
+                  return LineTooltipItem(
+                    '$month Day ${s.x.toInt()}\n',
+                    AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
+                    children: [
+                      TextSpan(
+                        text: '${NumberFormat('#,###').format(s.y.toInt())} gal',
+                        style: AppTheme.bodyMedium.copyWith(
+                            color: color, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MomLegend extends StatelessWidget {
+  final Color color;
+  final String label;
+
+  const _MomLegend({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 20,
+          height: 2,
+          color: color,
+        ),
+        const SizedBox(width: 5),
+        Text(label, style: AppTheme.bodySmall.copyWith(fontSize: 11)),
+      ],
     );
   }
 }

@@ -4,6 +4,7 @@ import '../providers/dashboard_provider.dart';
 import '../models/route_model.dart';
 import '../theme/app_theme.dart';
 import '../widgets/dashboard_card.dart';
+import '../widgets/map_widget.dart';
 
 class FleetScreen extends StatelessWidget {
   const FleetScreen({super.key});
@@ -30,6 +31,8 @@ class FleetScreen extends StatelessWidget {
             offDuty: offDuty,
             total: routes.length,
           ),
+          const SizedBox(height: 16),
+          const MapWidget(),
           const SizedBox(height: 16),
           DashboardCard(
             title: 'Driver Status — All Routes',
@@ -223,6 +226,12 @@ class _DriverCard extends StatelessWidget {
                       ? '${route.gallonsCollected.toStringAsFixed(0)} gal'
                       : '—'),
               _DStat('Progress', '$progressPct%'),
+              _DStat(
+                'Efficiency',
+                route.completedStops > 0
+                    ? '${(route.gallonsCollected / route.completedStops).toStringAsFixed(1)} gal/stop'
+                    : '—',
+              ),
             ],
           ),
           const SizedBox(height: 10),
